@@ -56,15 +56,15 @@ class _ScoreDisplayState extends State<ScoreDisplay>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.15),
-            Colors.white.withOpacity(0.05),
+            Colors.white.withValues(alpha: 0.15),
+            Colors.white.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -89,7 +89,7 @@ class _ScoreDisplayState extends State<ScoreDisplay>
                         Text(
                           'SCORE',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1,
@@ -128,7 +128,7 @@ class _ScoreDisplayState extends State<ScoreDisplay>
               Container(
                 width: 1,
                 height: 20,
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
                 margin: const EdgeInsets.symmetric(horizontal: 8),
               ),
               _buildStatItem(
@@ -140,7 +140,7 @@ class _ScoreDisplayState extends State<ScoreDisplay>
               Container(
                 width: 1,
                 height: 20,
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
                 margin: const EdgeInsets.symmetric(horizontal: 8),
               ),
               _buildStatItem(
@@ -173,7 +173,7 @@ class _ScoreDisplayState extends State<ScoreDisplay>
             Text(
               label,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 8,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,

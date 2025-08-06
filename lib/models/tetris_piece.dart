@@ -16,7 +16,7 @@ class TetrisPiece {
     this.rotationState = 0,
   });
 
-  // Generate the positions for each piece type and rotation
+  //More precise tetromino definitions with better balance
   Map<TetrominoType, List<List<int>>> get tetrominos => {
     TetrominoType.L: [
       [-26, -16, -6, -5], // 0°
@@ -31,16 +31,16 @@ class TetrisPiece {
       [-6, -5, -4, -14], // 270°
     ],
     TetrominoType.I: [
-      [-36, -26, -16, -6], // 0°
-      [-7, -6, -5, -4], // 90°
-      [-36, -26, -16, -6], // 180°
-      [-7, -6, -5, -4], // 270°
+      [-36, -26, -16, -6], // 0° - Vertical
+      [-7, -6, -5, -4], // 90° - Horizontal
+      [-36, -26, -16, -6], // 180° - Vertical
+      [-7, -6, -5, -4], // 270° - Horizontal
     ],
     TetrominoType.O: [
-      [-16, -15, -6, -5], // 0°
-      [-16, -15, -6, -5], // 90°
-      [-16, -15, -6, -5], // 180°
-      [-16, -15, -6, -5], // 270°
+      [-16, -15, -6, -5], // All rotations the same
+      [-16, -15, -6, -5],
+      [-16, -15, -6, -5],
+      [-16, -15, -6, -5],
     ],
     TetrominoType.S: [
       [-15, -14, -6, -5], // 0°
@@ -88,25 +88,35 @@ class TetrisPiece {
     rotationState = (rotationState + 1) % 4;
   }
 
+  //Enhanced color system with better contrast
   Color get color {
     switch (type) {
       case TetrominoType.L:
-        return Colors.orange;
+        return const Color(0xFFFF8C00); // Dark Orange
       case TetrominoType.J:
-        return Colors.blue;
+        return const Color(0xFF0080FF); // Bright Blue
       case TetrominoType.I:
-        return Colors.cyan;
+        return const Color(0xFF00FFFF); // Cyan
       case TetrominoType.O:
-        return Colors.yellow;
+        return const Color(0xFFFFD700); // Gold
       case TetrominoType.S:
-        return Colors.green;
+        return const Color(0xFF32CD32); // Lime Green
       case TetrominoType.Z:
-        return Colors.red;
+        return const Color(0xFFFF4444); // Bright Red
       case TetrominoType.T:
-        return Colors.purple;
+        return const Color(0xFF9932CC); // Dark Orchid
     }
   }
 
+  //Generate specific piece type (for 7-bag system)
+  static TetrisPiece generateSpecificPiece(TetrominoType type) {
+    return TetrisPiece(
+      type: type,
+      position: [4], // Start at top center
+    );
+  }
+
+  // Keep original random generation for backward compatibility
   static TetrisPiece generateRandomPiece() {
     Random random = Random();
     TetrominoType randomType =
@@ -115,5 +125,29 @@ class TetrisPiece {
       type: randomType,
       position: [4], // Start at top center
     );
+  }
+
+  //Get piece preview for next piece display
+  List<List<bool>> get previewGrid {
+    List<List<bool>> preview = List.generate(4, (_) => List.filled(4, false));
+    List<int> positions =
+        tetrominos[type]![0]; // Always use first rotation for preview
+
+    int minRow = positions
+        .map((pos) => pos ~/ 10)
+        .reduce((a, b) => a < b ? a : b);
+    int minCol = positions
+        .map((pos) => pos % 10)
+        .reduce((a, b) => a < b ? a : b);
+
+    for (int pos in positions) {
+      int row = (pos ~/ 10) - minRow;
+      int col = (pos % 10) - minCol;
+      if (row >= 0 && row < 4 && col >= 0 && col < 4) {
+        preview[row][col] = true;
+      }
+    }
+
+    return preview;
   }
 }

@@ -19,7 +19,7 @@ class GameControls extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Color(0xFF2A4D7A).withOpacity(0.3)],
+          colors: [Colors.transparent, Color(0xFF2A4D7A).withValues(alpha: 0.3)],
         ),
       ),
       child: Column(
@@ -85,18 +85,18 @@ class GameControls extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           gradient: RadialGradient(
-            colors: [color.withOpacity(0.4), color.withOpacity(0.1)],
+            colors: [color.withValues(alpha: 0.4), color.withValues(alpha: 0.1)],
           ),
           borderRadius: BorderRadius.circular(size / 4),
           border: Border.all(color: color, width: 3),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.5),
+              color: color.withValues(alpha: 0.5),
               blurRadius: 15,
               offset: Offset(0, 0),
             ),
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               blurRadius: 8,
               offset: Offset(0, 4),
             ),
@@ -109,7 +109,7 @@ class GameControls extends StatelessWidget {
           shadows: [
             Shadow(
               blurRadius: 10.0,
-              color: color.withOpacity(0.7),
+              color: color.withValues(alpha: 0.7),
               offset: Offset(0.0, 0.0),
             ),
           ],
@@ -122,14 +122,14 @@ class GameControls extends StatelessWidget {
     return Text(
       text,
       style: TextStyle(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         fontSize: 12,
         fontWeight: FontWeight.bold,
         letterSpacing: 1,
         shadows: [
           Shadow(
             blurRadius: 5.0,
-            color: color.withOpacity(0.5),
+            color: color.withValues(alpha: 0.5),
             offset: Offset(0.0, 0.0),
           ),
         ],

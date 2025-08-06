@@ -15,13 +15,13 @@ class NextPieceDisplay extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1A2A3E), Color(0xFF2A4D7A).withOpacity(0.7)],
+          colors: [Color(0xFF1A2A3E), Color(0xFF2A4D7A).withValues(alpha: 0.7)],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
             blurRadius: 15,
             offset: Offset(0, 5),
           ),
@@ -44,10 +44,10 @@ class NextPieceDisplay extends StatelessWidget {
                   ),
                   padding: EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.4),
+                    color: Colors.black.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       width: 1,
                     ),
                   ),
@@ -56,7 +56,7 @@ class NextPieceDisplay extends StatelessWidget {
                       : Center(
                           child: Icon(
                             Icons.help_outline,
-                            color: Colors.white.withOpacity(0.3),
+                            color: Colors.white.withValues(alpha: 0.3),
                             size: 20,
                           ),
                         ),
@@ -134,7 +134,7 @@ class NextPieceDisplay extends StatelessWidget {
           margin: EdgeInsets.all(1),
           decoration: BoxDecoration(
             color: isPartOfPiece
-                ? piece.color.withOpacity(0.9)
+                ? piece.color.withValues(alpha: 0.9)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(2),
             border: isPartOfPiece
@@ -143,7 +143,7 @@ class NextPieceDisplay extends StatelessWidget {
             boxShadow: isPartOfPiece
                 ? [
                     BoxShadow(
-                      color: piece.color.withOpacity(0.5),
+                      color: piece.color.withValues(alpha: 0.5),
                       blurRadius: 3,
                       offset: Offset(0, 0),
                     ),
@@ -157,7 +157,7 @@ class NextPieceDisplay extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [piece.color, piece.color.withOpacity(0.7)],
+                      colors: [piece.color, piece.color.withValues(alpha: 0.7)],
                     ),
                   ),
                 )
@@ -183,13 +183,13 @@ class NextPieceDisplay extends StatelessWidget {
             height: 50,
             decoration: BoxDecoration(
               gradient: RadialGradient(
-                colors: [color.withOpacity(0.3), color.withOpacity(0.1)],
+                colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.1)],
               ),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: color, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: color.withOpacity(0.4),
+                  color: color.withValues(alpha: 0.4),
                   blurRadius: 10,
                   offset: Offset(0, 0),
                 ),
@@ -201,7 +201,7 @@ class NextPieceDisplay extends StatelessWidget {
         SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 10),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 10),
         ),
       ],
     );

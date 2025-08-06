@@ -103,12 +103,12 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
               ),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 width: 2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.8),
+                  color: Colors.black.withValues(alpha: 0.8),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -132,7 +132,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -164,8 +164,8 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Colors.yellow.withOpacity(0.3),
-                          Colors.amber.withOpacity(0.3),
+                          Colors.yellow.withValues(alpha: 0.3),
+                          Colors.amber.withValues(alpha: 0.3),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(12),
@@ -247,7 +247,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: color.withOpacity(0.2),
+        backgroundColor: color.withValues(alpha: 0.2),
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 12),
         shape: RoundedRectangleBorder(
@@ -271,7 +271,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
 
   Widget _buildPauseMenu() {
     return Container(
-      color: Colors.black.withOpacity(0.9),
+      color: Colors.black.withValues(alpha: 0.9),
       child: Center(
         child: Container(
           margin: const EdgeInsets.all(32),
@@ -283,10 +283,13 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
               colors: [Color(0xFF2B1B3D), Color(0xFF4A1625)],
             ),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.3),
+              width: 2,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.7),
+                color: Colors.black.withValues(alpha: 0.7),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -351,7 +354,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: color.withOpacity(0.2),
+          backgroundColor: color.withValues(alpha: 0.2),
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -415,8 +418,8 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withOpacity(0.8),
-                              Colors.black.withOpacity(0.4),
+                              Colors.black.withValues(alpha: 0.8),
+                              Colors.black.withValues(alpha: 0.4),
                             ],
                           ),
                           borderRadius: const BorderRadius.only(
@@ -424,7 +427,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                             bottomRight: Radius.circular(20),
                           ),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.white.withValues(alpha: 0.1),
                           ),
                         ),
                         child: Row(
@@ -451,7 +454,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                                     (game.isPlaying
                                             ? Colors.orange
                                             : Colors.green)
-                                        .withOpacity(0.2),
+                                        .withValues(alpha: 0.2),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),

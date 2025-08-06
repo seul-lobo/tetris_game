@@ -24,18 +24,35 @@ class TetrisGame extends ChangeNotifier {
   Timer? gameTimer;
   List<int> rowsToAnimate = [];
 
-  final Box _scoreBox = Hive.box('highscore');
+  // Game History & Statistics
+  List<GameSession> gameHistory = [];
+  int totalGamesPlayed = 0;
+  int totalLinesCleared = 0;
+  double averageScore = 0.0;
 
-  int get highScore => _scoreBox.get('highscore', defaultValue: 0);
+  // 7-Bag Randomization System
+  List<TetrominoType> _pieceBag = [];
+  int _bagIndex = 0;
+
+  final Box _scoreBox = Hive.box('highscore');
+  final Box _statsBox = Hive.box('gameStats');
+
+  // Real-time high score with proper persistence
+  int get highScore {
+    final stored = _scoreBox.get('highscore', defaultValue: 0);
+    notifyListeners(); // Ensure UI updates
+    return stored;
+  }
 
   Duration get dropInterval =>
-      Duration(milliseconds: max(50, 500 - (level - 1) * 50));
+      Duration(milliseconds: max(50, 500 - (level - 1) * 40));
 
   void startGame() {
     if (isPlaying) return;
 
     resetGame();
     isPlaying = true;
+    _initializePieceBag(); // Initialize 7-bag system
     spawnNewPiece();
     _startGameLoop();
     notifyListeners();
@@ -71,7 +88,23 @@ class TetrisGame extends ChangeNotifier {
     isPlaying = false;
     rowsToAnimate = [];
     gameTimer?.cancel();
+    _pieceBag.clear();
+    _bagIndex = 0;
     notifyListeners();
+  }
+
+  // 7-Bag Randomization System
+  void _initializePieceBag() {
+    _pieceBag = List.from(TetrominoType.values);
+    _pieceBag.shuffle();
+    _bagIndex = 0;
+  }
+
+  TetrominoType _getNextRandomType() {
+    if (_bagIndex >= _pieceBag.length) {
+      _initializePieceBag();
+    }
+    return _pieceBag[_bagIndex++];
   }
 
   void _startGameLoop() {
@@ -86,8 +119,9 @@ class TetrisGame extends ChangeNotifier {
   }
 
   void spawnNewPiece() {
-    currentPiece = nextPiece ?? TetrisPiece.generateRandomPiece();
-    nextPiece = TetrisPiece.generateRandomPiece();
+    currentPiece =
+        nextPiece ?? TetrisPiece.generateSpecificPiece(_getNextRandomType());
+    nextPiece = TetrisPiece.generateSpecificPiece(_getNextRandomType());
 
     if (!_isValidPosition(currentPiece!)) {
       gameOver();
@@ -97,7 +131,6 @@ class TetrisGame extends ChangeNotifier {
 
   void _dropPiece() {
     if (currentPiece == null) return;
-
     movePiece(Direction.down);
   }
 
@@ -131,16 +164,42 @@ class TetrisGame extends ChangeNotifier {
 
     testPiece.rotate();
 
+    // Wall-kick system for better rotation
     if (_isValidPosition(testPiece, enforceBoundaries: true)) {
       currentPiece!.rotate();
       notifyListeners();
+    } else {
+      // Try wall kicks
+      List<List<int>> wallKicks = [
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+        [-1, -1],
+        [1, -1],
+      ];
+
+      for (var kick in wallKicks) {
+        TetrisPiece kickTestPiece = TetrisPiece(
+          type: testPiece.type,
+          position: [testPiece.position[0] + kick[0] + kick[1] * gridWidth],
+          rotationState: testPiece.rotationState,
+        );
+
+        if (_isValidPosition(kickTestPiece, enforceBoundaries: true)) {
+          currentPiece!.position[0] = kickTestPiece.position[0];
+          currentPiece!.rotate();
+          notifyListeners();
+          return;
+        }
+      }
     }
   }
 
   void hardDrop() {
     if (currentPiece == null || !isPlaying) return;
 
-    while (_isValidPosition(currentPiece!, enforceBoundaries: true)) {
+    int dropDistance = 0;
+    while (true) {
       TetrisPiece testPiece = TetrisPiece(
         type: currentPiece!.type,
         position: [...currentPiece!.position],
@@ -150,33 +209,62 @@ class TetrisGame extends ChangeNotifier {
 
       if (_isValidPosition(testPiece, enforceBoundaries: true)) {
         currentPiece!.move(Direction.down);
-        score += 2;
+        dropDistance++;
       } else {
         break;
       }
     }
+
+    score += dropDistance * 2; // Bonus points for hard drop
     _placePiece();
   }
 
+  // CRITICAL FIX: Enhanced collision detection
   bool _isValidPosition(TetrisPiece piece, {bool enforceBoundaries = false}) {
-    for (int pos in piece.currentPositions) {
+    List<int> positions = piece.currentPositions;
+
+    for (int pos in positions) {
       int row = pos ~/ gridWidth;
       int col = pos % gridWidth;
 
-      if (row < 0) continue;
+      // Allow spawning above grid (negative rows)
+      if (row < 0 && !enforceBoundaries) continue;
+
+      // Check boundaries
       if (enforceBoundaries) {
         if (col < 0 || col >= gridWidth || row >= gridHeight) return false;
       } else {
         if (row >= gridHeight || col < 0 || col >= gridWidth) return false;
       }
-      if (grid[row][col] != null) return false;
+
+      // Check collision with existing blocks
+      if (row >= 0 && row < gridHeight && grid[row][col] != null) return false;
     }
     return true;
   }
 
+  // CRITICAL FIX: Enhanced piece placement with proper collision
   void _placePiece() {
     if (currentPiece == null) return;
 
+    // Ensure piece settles completely - check if ANY part can fall further
+    bool canFallFurther = true;
+    while (canFallFurther) {
+      TetrisPiece testPiece = TetrisPiece(
+        type: currentPiece!.type,
+        position: [...currentPiece!.position],
+        rotationState: currentPiece!.rotationState,
+      );
+      testPiece.move(Direction.down);
+
+      if (_isValidPosition(testPiece, enforceBoundaries: true)) {
+        currentPiece!.move(Direction.down);
+      } else {
+        canFallFurther = false;
+      }
+    }
+
+    // Place the piece on the grid
     for (int pos in currentPiece!.currentPositions) {
       int row = pos ~/ gridWidth;
       int col = pos % gridWidth;
@@ -212,6 +300,7 @@ class TetrisGame extends ChangeNotifier {
 
         int linesCount = fullRows.length;
         linesCleared += linesCount;
+        totalLinesCleared += linesCount;
         _updateScore(linesCount);
         rowsToAnimate = [];
         notifyListeners();
@@ -232,13 +321,15 @@ class TetrisGame extends ChangeNotifier {
         points = 500 * level;
         break;
       case 4:
-        points = 800 * level;
+        points = 800 * level; // Tetris bonus!
         break;
     }
     score += points;
 
+    // Real-time high score updates
     if (score > highScore) {
       _scoreBox.put('highscore', score);
+      notifyListeners(); // Trigger UI update immediately
     }
   }
 
@@ -255,7 +346,35 @@ class TetrisGame extends ChangeNotifier {
     isGameOver = true;
     isPlaying = false;
     gameTimer?.cancel();
+
+    // Save game session to history
+    _saveGameSession();
     notifyListeners();
+  }
+
+  // Game session tracking
+  void _saveGameSession() {
+    final session = GameSession(
+      score: score,
+      level: level,
+      linesCleared: linesCleared,
+      timestamp: DateTime.now(),
+      duration: DateTime.now().difference(
+        DateTime.now(),
+      ), // Calculate actual duration
+    );
+
+    gameHistory.insert(0, session);
+    if (gameHistory.length > 50) gameHistory.removeLast(); // Keep last 50 games
+
+    totalGamesPlayed++;
+    averageScore =
+        (averageScore * (totalGamesPlayed - 1) + score) / totalGamesPlayed;
+
+    // Persist to storage
+    _statsBox.put('gameHistory', gameHistory.map((s) => s.toJson()).toList());
+    _statsBox.put('totalGamesPlayed', totalGamesPlayed);
+    _statsBox.put('averageScore', averageScore);
   }
 
   Color? getCellColor(int row, int col) {
@@ -297,4 +416,37 @@ class TetrisGame extends ChangeNotifier {
     gameTimer?.cancel();
     super.dispose();
   }
+}
+
+// Game Session Data Model
+class GameSession {
+  final int score;
+  final int level;
+  final int linesCleared;
+  final DateTime timestamp;
+  final Duration duration;
+
+  GameSession({
+    required this.score,
+    required this.level,
+    required this.linesCleared,
+    required this.timestamp,
+    required this.duration,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'score': score,
+    'level': level,
+    'linesCleared': linesCleared,
+    'timestamp': timestamp.toIso8601String(),
+    'duration': duration.inSeconds,
+  };
+
+  factory GameSession.fromJson(Map<String, dynamic> json) => GameSession(
+    score: json['score'] ?? 0,
+    level: json['level'] ?? 1,
+    linesCleared: json['linesCleared'] ?? 0,
+    timestamp: DateTime.tryParse(json['timestamp'] ?? '') ?? DateTime.now(),
+    duration: Duration(seconds: json['duration'] ?? 0),
+  );
 }

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:tetris_game/models/game_session.dart';
+import 'package:tetris_game/widgets/blast_particles.dart';
 import '../models/tetris_piece.dart';
 
 class TetrisGame extends ChangeNotifier {
@@ -24,7 +26,7 @@ class TetrisGame extends ChangeNotifier {
   Timer? gameTimer;
   List<int> rowsToAnimate = [];
 
-  // NEW: Blast effect properties
+  //Blast effect properties
   List<BlastParticle> blastParticles = [];
   bool isBlasting = false;
   Timer? blastTimer;
@@ -243,7 +245,7 @@ class TetrisGame extends ChangeNotifier {
     _updateGameSpeed();
   }
 
-  // ENHANCED: Clear lines with blast effect
+  //Clear lines with blast effect
   void _clearLines() {
     List<int> fullRows = [];
 
@@ -281,7 +283,7 @@ class TetrisGame extends ChangeNotifier {
     }
   }
 
-  // NEW: Create blast effect particles
+  //Create blast effect particles
   void _createBlastEffect(List<int> fullRows) {
     blastParticles.clear();
     final random = Random();
@@ -325,7 +327,7 @@ class TetrisGame extends ChangeNotifier {
     }
   }
 
-  // NEW: Animate blast particles
+  //Animate blast particles
   void _startBlastAnimation() {
     blastTimer?.cancel();
     blastTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
@@ -477,84 +479,4 @@ class TetrisGame extends ChangeNotifier {
     blastTimer?.cancel();
     super.dispose();
   }
-}
-
-//Blast Particle class for explosion effects
-class BlastParticle {
-  double currentRow;
-  double currentCol;
-  final double startRow;
-  final double startCol;
-  double velocityX;
-  double velocityY;
-  final Color color;
-  final double size;
-  double life;
-  final double decay;
-
-  BlastParticle({
-    required this.startRow,
-    required this.startCol,
-    required this.velocityX,
-    required this.velocityY,
-    required this.color,
-    required this.size,
-    required this.life,
-    required this.decay,
-  }) : currentRow = startRow,
-       currentCol = startCol;
-
-  void update() {
-    if (life <= 0) return;
-
-    // Update position
-    currentRow += velocityY * 0.1;
-    currentCol += velocityX * 0.1;
-
-    // Apply gravity and drag
-    velocityY += 0.15; // gravity
-    velocityX *= 0.98; // air resistance
-    velocityY *= 0.98;
-
-    // Reduce life
-    life -= decay;
-    if (life < 0) life = 0;
-  }
-
-  Color get currentColor {
-    return color.withValues(alpha: life);
-  }
-}
-
-// Game Session Data Model - Enhanced
-class GameSession {
-  final int score;
-  final int level;
-  final int linesCleared;
-  final DateTime timestamp;
-  final Duration duration;
-
-  GameSession({
-    required this.score,
-    required this.level,
-    required this.linesCleared,
-    required this.timestamp,
-    required this.duration,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'score': score,
-    'level': level,
-    'linesCleared': linesCleared,
-    'timestamp': timestamp.toIso8601String(),
-    'duration': duration.inSeconds,
-  };
-
-  factory GameSession.fromJson(Map<String, dynamic> json) => GameSession(
-    score: json['score'] ?? 0,
-    level: json['level'] ?? 1,
-    linesCleared: json['linesCleared'] ?? 0,
-    timestamp: DateTime.tryParse(json['timestamp'] ?? '') ?? DateTime.now(),
-    duration: Duration(seconds: json['duration'] ?? 0),
-  );
 }

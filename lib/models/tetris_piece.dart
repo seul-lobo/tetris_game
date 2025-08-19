@@ -22,7 +22,7 @@ class TetrisPiece {
       position = [...other.position],
       rotationState = other.rotationState;
 
-  // FIXED: Proper tetromino definitions with relative positions
+  //Proper tetromino definitions with relative positions
   Map<TetrominoType, List<List<List<int>>>> get tetrominos => {
     TetrominoType.L: [
       [
@@ -208,7 +208,7 @@ class TetrisPiece {
     ],
   };
 
-  // FIXED: Returns absolute positions as [row, col] pairs
+  //Returns absolute positions as [row, col] pairs
   List<List<int>> get currentPositions {
     List<List<int>> positions = [];
     for (var relPos in tetrominos[type]![rotationState]) {

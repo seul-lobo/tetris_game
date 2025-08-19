@@ -17,7 +17,7 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Initialize Hive with additional storage
+  // Initialize Hive
   await Hive.initFlutter();
 
   // Open all required boxes

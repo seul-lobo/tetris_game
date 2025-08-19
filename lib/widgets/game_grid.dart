@@ -286,8 +286,9 @@ class BlastEffectPainter extends CustomPainter {
       final y = particle.currentRow * cellSize + cellSize * 0.5;
 
       // Only draw if particle is within visible bounds
-      if (x < -50 || x > size.width + 50 || y < -50 || y > size.height + 50)
+      if (x < -50 || x > size.width + 50 || y < -50 || y > size.height + 50) {
         continue;
+      }
 
       // Draw particle with size based on life and original size
       final radius = particle.size * cellSize * particle.life;

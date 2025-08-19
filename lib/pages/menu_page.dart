@@ -317,7 +317,7 @@ class _MenuPageState extends State<MenuPage> with TickerProviderStateMixin {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.symmetric(horizontal: 0),
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   colors: [color.withValues(alpha: 0.3), Colors.transparent],
@@ -330,9 +330,9 @@ class _MenuPageState extends State<MenuPage> with TickerProviderStateMixin {
             Text(
               text,
               style: TextStyle(
-                fontSize: isPrimary ? 20 : 16,
+                fontSize: isPrimary ? 24 : 12,
                 fontWeight: FontWeight.bold,
-                letterSpacing: isPrimary ? 2 : 1,
+                letterSpacing: isPrimary ? 2 : 0,
               ),
             ),
           ],
@@ -389,7 +389,7 @@ class _MenuPageState extends State<MenuPage> with TickerProviderStateMixin {
         return Dialog(
           backgroundColor: Colors.transparent,
           child: Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
@@ -416,35 +416,33 @@ class _MenuPageState extends State<MenuPage> with TickerProviderStateMixin {
                     letterSpacing: 1,
                   ),
                 ),
-                const SizedBox(height: 20),
-                const SingleChildScrollView(
-                  child: Text(
-                    '🎮 CONTROLS:\n'
-                    '• Tap left/right arrows to move pieces\n'
-                    '• Tap rotate button to rotate pieces\n'
-                    '• Tap soft drop for controlled descent\n'
-                    '• Tap hard drop for instant placement\n\n'
-                    '🎯 OBJECTIVE:\n'
-                    '• Fill complete horizontal lines to clear them\n'
-                    '• Prevent blocks from reaching the top\n'
-                    '• Score points by clearing lines efficiently\n\n'
-                    '⚡ SCORING SYSTEM:\n'
-                    '• Single line: 100 × level\n'
-                    '• Double lines: 300 × level\n'
-                    '• Triple lines: 500 × level\n'
-                    '• TETRIS (4 lines): 800 × level\n\n'
-                    '🚀 TIPS:\n'
-                    '• Plan ahead using the next piece preview\n'
-                    '• Save space for Tetris opportunities\n'
-                    '• Speed increases every 10 lines cleared',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      height: 1.6,
-                      fontSize: 14,
-                    ),
+                const SizedBox(height: 10),
+                Text(
+                  '🎮 CONTROLS:\n'
+                  '• Tap left/right arrows to move pieces\n'
+                  '• Tap rotate button to rotate pieces\n'
+                  '• Tap soft drop for controlled descent\n'
+                  '• Tap hard drop for instant placement\n\n'
+                  '🎯 OBJECTIVE:\n'
+                  '• Fill complete horizontal lines to clear them\n'
+                  '• Prevent blocks from reaching the top\n'
+                  '• Score points by clearing lines efficiently\n\n'
+                  '⚡ SCORING SYSTEM:\n'
+                  '• Single line: 100 × level\n'
+                  '• Double lines: 300 × level\n'
+                  '• Triple lines: 500 × level\n'
+                  '• TETRIS (4 lines): 800 × level\n\n'
+                  '🚀 TIPS:\n'
+                  '• Plan ahead using the next piece preview\n'
+                  '• Save space for Tetris opportunities\n'
+                  '• Speed increases every 10 lines cleared',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    height: 1.6,
+                    fontSize: 14,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 14),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(

@@ -11,15 +11,19 @@ class GameControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: MediaQuery.of(context).size.width * 0.04,
+        horizontal: MediaQuery.of(context).size.width * 0.06,
         vertical: 8,
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Color(0xFF2A4D7A).withValues(alpha: 0.3)],
+          colors: [
+            Colors.transparent,
+            Color(0xFF2A4D7A).withValues(alpha: 0.3),
+          ],
         ),
       ),
       child: Column(
@@ -35,7 +39,7 @@ class GameControls extends StatelessWidget {
                   game.movePiece(Direction.left);
                 },
                 color: Colors.blue,
-                size: MediaQuery.of(context).size.width * 0.10,
+                size: MediaQuery.of(context).size.width * 0.12,
               ),
               _buildControlButton(
                 icon: Icons.rotate_right,
@@ -44,7 +48,7 @@ class GameControls extends StatelessWidget {
                   game.rotatePiece();
                 },
                 color: Colors.purple,
-                size: MediaQuery.of(context).size.width * 0.13,
+                size: MediaQuery.of(context).size.width * 0.15,
               ),
               _buildControlButton(
                 icon: Icons.keyboard_arrow_right,
@@ -53,11 +57,11 @@ class GameControls extends StatelessWidget {
                   game.movePiece(Direction.right);
                 },
                 color: Colors.blue,
-                size: MediaQuery.of(context).size.width * 0.10,
+                size: MediaQuery.of(context).size.width * 0.12,
               ),
             ],
           ),
-          SizedBox(height: 12),
+          SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -85,7 +89,10 @@ class GameControls extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           gradient: RadialGradient(
-            colors: [color.withValues(alpha: 0.4), color.withValues(alpha: 0.1)],
+            colors: [
+              color.withValues(alpha: 0.4),
+              color.withValues(alpha: 0.1),
+            ],
           ),
           borderRadius: BorderRadius.circular(size / 4),
           border: Border.all(color: color, width: 3),

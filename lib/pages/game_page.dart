@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../game/tetris_game.dart';
 import '../widgets/game_grid.dart';
-import '../widgets/next_piece_display.dart';
 import '../widgets/game_controls.dart';
 import '../widgets/score_display.dart';
+import '../utils/screen_utils.dart';
 
 class GamePage extends StatefulWidget {
   const GamePage({super.key});
@@ -14,7 +15,6 @@ class GamePage extends StatefulWidget {
 }
 
 class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
-  late TetrisGame game;
   bool _showPauseMenu = false;
   late AnimationController _scoreAnimationController;
   late Animation<double> _scoreAnimation;
@@ -22,7 +22,6 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    game = TetrisGame();
 
     _scoreAnimationController = AnimationController(
       duration: const Duration(milliseconds: 200),
@@ -45,32 +44,17 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      game.startGame();
+      context.read<TetrisGame>().startGame();
     });
-
-    game.addListener(_onGameStateChanged);
-  }
-
-  int _previousScore = 0;
-
-  void _onGameStateChanged() {
-    if (game.score > _previousScore) {
-      _scoreAnimationController.forward().then((_) {
-        _scoreAnimationController.reverse();
-      });
-      _previousScore = game.score;
-    }
   }
 
   @override
   void dispose() {
-    game.removeListener(_onGameStateChanged);
-    game.dispose();
     _scoreAnimationController.dispose();
     super.dispose();
   }
 
-  void _togglePause() {
+  void _togglePause(TetrisGame game) {
     HapticFeedback.mediumImpact();
     if (game.isPlaying) {
       game.pauseGame();
@@ -85,7 +69,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
     }
   }
 
-  void _showGameOverDialog() {
+  void _showGameOverDialog(TetrisGame game) {
     HapticFeedback.heavyImpact();
     showDialog(
       context: context,
@@ -94,7 +78,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
         return Dialog(
           backgroundColor: Colors.transparent,
           child: Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(ScreenUtils.wp(6)),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
@@ -117,20 +101,23 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.sports_esports, color: Colors.red, size: 80),
-                const SizedBox(height: 16),
-                const Text(
-                  'GAME OVER',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 28,
-                    letterSpacing: 3,
-                  ),
+                Icon(
+                  Icons.sports_esports,
+                  color: Colors.red,
+                  size: ScreenUtils.getScaledSize(80),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: ScreenUtils.hp(2)),
+                Text(
+                  'GAME OVER',
+                  style: ScreenUtils.getResponsiveTextStyle(
+                    baseFontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ).copyWith(letterSpacing: 3),
+                ),
+                SizedBox(height: ScreenUtils.hp(3)),
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(ScreenUtils.wp(4)),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -142,13 +129,13 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                         game.score.toString(),
                         Colors.cyan,
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: ScreenUtils.hp(1)),
                       _buildStatRow(
                         'LEVEL REACHED',
                         game.level.toString(),
                         Colors.green,
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: ScreenUtils.hp(1)),
                       _buildStatRow(
                         'LINES CLEARED',
                         game.linesCleared.toString(),
@@ -158,9 +145,9 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                   ),
                 ),
                 if (game.score >= game.highScore) ...[
-                  const SizedBox(height: 20),
+                  SizedBox(height: ScreenUtils.hp(3)),
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(ScreenUtils.wp(4)),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
@@ -171,17 +158,17 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.yellow, width: 2),
                     ),
-                    child: const Text(
+                    child: Text(
                       '🏆 NEW HIGH SCORE! 🏆',
-                      style: TextStyle(
-                        color: Colors.yellow,
+                      style: ScreenUtils.getResponsiveTextStyle(
+                        baseFontSize: 14,
                         fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                        color: Colors.yellow,
                       ),
                     ),
                   ),
                 ],
-                const SizedBox(height: 32),
+                SizedBox(height: ScreenUtils.hp(4)),
                 Row(
                   children: [
                     Expanded(
@@ -196,7 +183,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                         },
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: ScreenUtils.wp(3)),
                     Expanded(
                       child: _buildDialogButton(
                         'MENU',
@@ -224,14 +211,17 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 14),
+          style: ScreenUtils.getResponsiveTextStyle(
+            baseFontSize: 14,
+            color: Colors.white70,
+          ),
         ),
         Text(
           value,
-          style: TextStyle(
-            color: color,
-            fontSize: 18,
+          style: ScreenUtils.getResponsiveTextStyle(
+            baseFontSize: 18,
             fontWeight: FontWeight.bold,
+            color: color,
           ),
         ),
       ],
@@ -249,7 +239,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
       style: ElevatedButton.styleFrom(
         backgroundColor: color.withValues(alpha: 0.2),
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: EdgeInsets.symmetric(vertical: ScreenUtils.hp(1.5)),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: color, width: 2),
@@ -258,24 +248,27 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 20),
-          const SizedBox(width: 8),
+          Icon(icon, size: ScreenUtils.getScaledSize(20)),
+          SizedBox(width: ScreenUtils.wp(2)),
           Text(
             text,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            style: ScreenUtils.getResponsiveTextStyle(
+              baseFontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPauseMenu() {
+  Widget _buildPauseMenu(TetrisGame game) {
     return Container(
       color: Colors.black.withValues(alpha: 0.9),
       child: Center(
         child: Container(
-          margin: const EdgeInsets.all(32),
-          padding: const EdgeInsets.all(32),
+          margin: ScreenUtils.getResponsivePadding(),
+          padding: EdgeInsets.all(ScreenUtils.wp(8)),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
@@ -298,29 +291,28 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.pause_circle_filled,
                 color: Colors.white,
-                size: 64,
+                size: ScreenUtils.getScaledSize(64),
               ),
-              const SizedBox(height: 16),
-              const Text(
+              SizedBox(height: ScreenUtils.hp(2)),
+              Text(
                 'GAME PAUSED',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
+                style: ScreenUtils.getResponsiveTextStyle(
+                  baseFontSize: 28,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 3,
-                ),
+                  color: Colors.white,
+                ).copyWith(letterSpacing: 3),
               ),
-              const SizedBox(height: 40),
+              SizedBox(height: ScreenUtils.hp(5)),
               _buildPauseButton(
                 'RESUME',
                 Icons.play_arrow,
                 Colors.green,
-                () => _togglePause(),
+                () => _togglePause(game),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: ScreenUtils.hp(2)),
               _buildPauseButton('RESTART', Icons.refresh, Colors.orange, () {
                 setState(() {
                   _showPauseMenu = false;
@@ -328,7 +320,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                 game.resetGame();
                 game.startGame();
               }),
-              const SizedBox(height: 16),
+              SizedBox(height: ScreenUtils.hp(2)),
               _buildPauseButton(
                 'MENU',
                 Icons.home,
@@ -350,7 +342,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
   ) {
     return SizedBox(
       width: double.infinity,
-      height: 56,
+      height: ScreenUtils.hp(7),
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
@@ -365,15 +357,87 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 24),
-            const SizedBox(width: 12),
+            Icon(icon, size: ScreenUtils.getScaledSize(24)),
+            SizedBox(width: ScreenUtils.wp(3)),
             Text(
               text,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: ScreenUtils.getResponsiveTextStyle(
+                baseFontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildNextPieceGridInHeader(TetrisGame game) {
+    if (game.nextPiece == null) return const SizedBox.shrink();
+
+    final piece = game.nextPiece!;
+    List<List<int>> positions = piece.tetrominos[piece.type]![0];
+
+    // Find bounding box
+    int minRow = positions.map((pos) => pos[0]).reduce((a, b) => a < b ? a : b);
+    int maxRow = positions.map((pos) => pos[0]).reduce((a, b) => a > b ? a : b);
+    int minCol = positions.map((pos) => pos[1]).reduce((a, b) => a < b ? a : b);
+    int maxCol = positions.map((pos) => pos[1]).reduce((a, b) => a > b ? a : b);
+
+    int pieceWidth = maxCol - minCol + 1;
+    int pieceHeight = maxRow - minRow + 1;
+
+    return GridView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      itemCount: 16, // 4x4 grid
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        childAspectRatio: 1.0,
+        mainAxisSpacing: 0.5,
+        crossAxisSpacing: 0.5,
+      ),
+      itemBuilder: (context, index) {
+        int row = index ~/ 4;
+        int col = index % 4;
+
+        // Center the piece perfectly in the 4x4 grid
+        double centerOffsetRow = (4 - pieceHeight) / 2.0;
+        double centerOffsetCol = (4 - pieceWidth) / 2.0;
+
+        bool isPartOfPiece = positions.any((pos) {
+          double pieceRow = (pos[0] - minRow) + centerOffsetRow;
+          double pieceCol = (pos[1] - minCol) + centerOffsetCol;
+
+          // Check if this grid cell contains the piece part (with tolerance for centering)
+          return (pieceRow >= row && pieceRow < row + 1) &&
+              (pieceCol >= col && pieceCol < col + 1);
+        });
+
+        return Container(
+          decoration: BoxDecoration(
+            color: isPartOfPiece
+                ? piece.color.withValues(alpha: 0.9)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(2),
+            border: isPartOfPiece
+                ? Border.all(
+                    color: piece.color.withValues(alpha: 0.7),
+                    width: 0.5,
+                  )
+                : null,
+            boxShadow: isPartOfPiece
+                ? [
+                    BoxShadow(
+                      color: piece.color.withValues(alpha: 0.3),
+                      blurRadius: 2,
+                      offset: const Offset(0, 0),
+                    ),
+                  ]
+                : null,
+          ),
+        );
+      },
     );
   }
 
@@ -394,12 +458,11 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
           ),
         ),
         child: SafeArea(
-          child: AnimatedBuilder(
-            animation: game,
-            builder: (context, child) {
+          child: Consumer<TetrisGame>(
+            builder: (context, game, child) {
               if (game.isGameOver && !_showPauseMenu) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _showGameOverDialog();
+                  _showGameOverDialog(game);
                 });
               }
 
@@ -407,11 +470,11 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                 children: [
                   Column(
                     children: [
-                      // Header with ScoreDisplay on left and Pause on right
+                      // Header with ScoreDisplay, NextPiece, and Pause Button
                       Container(
                         padding: EdgeInsets.symmetric(
-                          horizontal: MediaQuery.of(context).size.width * 0.04,
-                          vertical: 12,
+                          horizontal: ScreenUtils.wp(4),
+                          vertical: ScreenUtils.hp(1),
                         ),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -432,22 +495,84 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                         ),
                         child: Row(
                           children: [
-                            AnimatedBuilder(
-                              animation: _scoreAnimation,
-                              builder: (context, child) {
-                                return Transform.scale(
-                                  scale: _scoreAnimation.value,
-                                  child: ScoreDisplay(game: game),
-                                );
-                              },
+                            // Score Display
+                            Expanded(
+                              flex: 2,
+                              child: AnimatedBuilder(
+                                animation: _scoreAnimation,
+                                builder: (context, child) {
+                                  return Transform.scale(
+                                    scale: _scoreAnimation.value,
+                                    child: ScoreDisplay(game: game),
+                                  );
+                                },
+                              ),
                             ),
-                            Spacer(),
+
+                            // Next Piece Display in the middle
+                            Container(
+                              width: ScreenUtils.wp(20),
+                              height: ScreenUtils.wp(20),
+                              margin: EdgeInsets.symmetric(
+                                horizontal: ScreenUtils.wp(2),
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Color(0xFF1A2A3E),
+                                    Color(0xFF2A4D7A).withValues(alpha: 0.7),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                  width: 2,
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      margin: EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.4,
+                                        ),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.2,
+                                          ),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: game.nextPiece != null
+                                          ? _buildNextPieceGridInHeader(game)
+                                          : Center(
+                                              child: Icon(
+                                                Icons.help_outline,
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.3,
+                                                ),
+                                                size: 12,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Pause Button
                             IconButton(
-                              onPressed: _togglePause,
+                              onPressed: () => _togglePause(game),
                               icon: Icon(
                                 game.isPlaying ? Icons.pause : Icons.play_arrow,
                                 color: Colors.white,
-                                size: 28,
+                                size: ScreenUtils.getScaledSize(28),
                               ),
                               style: IconButton.styleFrom(
                                 backgroundColor:
@@ -463,42 +588,43 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                           ],
                         ),
                       ),
-                      // Main content with flexible layout
+
+                      // Main content - Grid takes maximum space
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: ScreenUtils.wp(4),
+                          ),
                           child: Column(
                             children: [
-                              // Full-width GameGrid with larger boxes and reduced rows
                               SizedBox(
-                                width: double.infinity,
-                                child: GameGrid(
-                                  game: game,
-                                  rows: 12,
-                                  boxSize:
-                                      MediaQuery.of(context).size.width * 0.09,
+                                height: ScreenUtils.hp(1),
+                              ), // Reduced top spacing
+                              // Game Grid - takes all available space
+                              Expanded(
+                                child: Center(
+                                  child: GameGrid(
+                                    game: game,
+                                    rows: 15, // All 15 rows visible
+                                    cellSize: ScreenUtils.getOptimalCellSize(),
+                                  ),
                                 ),
                               ),
-                              SizedBox(height: 10),
-                              // NextPieceDisplay spanning width with drop buttons
-                              SizedBox(
-                                width: double.infinity,
-                                height:
-                                    MediaQuery.of(context).size.height * 0.12,
-                                child: NextPieceDisplay(game: game),
-                              ),
+
+                              // Small spacing before controls
                             ],
                           ),
                         ),
                       ),
+
                       // Game Controls - Fixed at Bottom
                       Container(
-                        padding: const EdgeInsets.only(bottom: 5),
+                        padding: EdgeInsets.only(bottom: ScreenUtils.hp(1)),
                         child: GameControls(game: game),
                       ),
                     ],
                   ),
-                  if (_showPauseMenu) _buildPauseMenu(),
+                  if (_showPauseMenu) _buildPauseMenu(game),
                 ],
               );
             },

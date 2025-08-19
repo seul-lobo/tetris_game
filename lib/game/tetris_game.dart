@@ -6,7 +6,7 @@ import '../models/tetris_piece.dart';
 
 class TetrisGame extends ChangeNotifier {
   static const int gridWidth = 10;
-  static const int gridHeight = 12;
+  static const int gridHeight = 15;
   static const int gridSize = gridWidth * gridHeight;
 
   List<List<TetrominoType?>> grid = List.generate(
@@ -24,6 +24,11 @@ class TetrisGame extends ChangeNotifier {
   Timer? gameTimer;
   List<int> rowsToAnimate = [];
 
+  // NEW: Blast effect properties
+  List<BlastParticle> blastParticles = [];
+  bool isBlasting = false;
+  Timer? blastTimer;
+
   // Game History & Statistics
   List<GameSession> gameHistory = [];
   int totalGamesPlayed = 0;
@@ -40,7 +45,6 @@ class TetrisGame extends ChangeNotifier {
   // Real-time high score with proper persistence
   int get highScore {
     final stored = _scoreBox.get('highscore', defaultValue: 0);
-    notifyListeners(); // Ensure UI updates
     return stored;
   }
 
@@ -52,7 +56,7 @@ class TetrisGame extends ChangeNotifier {
 
     resetGame();
     isPlaying = true;
-    _initializePieceBag(); // Initialize 7-bag system
+    _initializePieceBag();
     spawnNewPiece();
     _startGameLoop();
     notifyListeners();
@@ -63,6 +67,7 @@ class TetrisGame extends ChangeNotifier {
 
     isPlaying = false;
     gameTimer?.cancel();
+    blastTimer?.cancel();
     notifyListeners();
   }
 
@@ -71,6 +76,7 @@ class TetrisGame extends ChangeNotifier {
 
     isPlaying = true;
     _startGameLoop();
+    if (isBlasting) _startBlastAnimation();
     notifyListeners();
   }
 
@@ -87,7 +93,10 @@ class TetrisGame extends ChangeNotifier {
     isGameOver = false;
     isPlaying = false;
     rowsToAnimate = [];
+    blastParticles = [];
+    isBlasting = false;
     gameTimer?.cancel();
+    blastTimer?.cancel();
     _pieceBag.clear();
     _bagIndex = 0;
     notifyListeners();
@@ -123,8 +132,10 @@ class TetrisGame extends ChangeNotifier {
         nextPiece ?? TetrisPiece.generateSpecificPiece(_getNextRandomType());
     nextPiece = TetrisPiece.generateSpecificPiece(_getNextRandomType());
 
-    if (!_isValidPosition(currentPiece!)) {
+    // Check if the new piece can be placed at spawn position
+    if (currentPiece != null && !_isValidPosition(currentPiece!)) {
       gameOver();
+      return;
     }
     notifyListeners();
   }
@@ -137,16 +148,14 @@ class TetrisGame extends ChangeNotifier {
   void movePiece(Direction direction) {
     if (currentPiece == null || !isPlaying) return;
 
-    TetrisPiece testPiece = TetrisPiece(
-      type: currentPiece!.type,
-      position: [...currentPiece!.position],
-      rotationState: currentPiece!.rotationState,
-    );
-
+    // Create a copy to test movement
+    TetrisPiece testPiece = TetrisPiece.copyFrom(currentPiece!);
     testPiece.move(direction);
 
-    if (_isValidPosition(testPiece, enforceBoundaries: true)) {
-      currentPiece!.move(direction);
+    if (_isValidPosition(testPiece)) {
+      // Only update the current piece position, don't recreate it
+      currentPiece!.position[0] = testPiece.position[0];
+      currentPiece!.position[1] = testPiece.position[1];
       notifyListeners();
     } else if (direction == Direction.down) {
       _placePiece();
@@ -156,17 +165,13 @@ class TetrisGame extends ChangeNotifier {
   void rotatePiece() {
     if (currentPiece == null || !isPlaying) return;
 
-    TetrisPiece testPiece = TetrisPiece(
-      type: currentPiece!.type,
-      position: [...currentPiece!.position],
-      rotationState: currentPiece!.rotationState,
-    );
-
+    // Test rotation
+    TetrisPiece testPiece = TetrisPiece.copyFrom(currentPiece!);
     testPiece.rotate();
 
-    // Wall-kick system for better rotation
-    if (_isValidPosition(testPiece, enforceBoundaries: true)) {
-      currentPiece!.rotate();
+    if (_isValidPosition(testPiece)) {
+      // Apply rotation to current piece
+      currentPiece!.rotationState = testPiece.rotationState;
       notifyListeners();
     } else {
       // Try wall kicks
@@ -176,18 +181,20 @@ class TetrisGame extends ChangeNotifier {
         [0, -1],
         [-1, -1],
         [1, -1],
+        [2, 0],
+        [-2, 0],
       ];
 
       for (var kick in wallKicks) {
-        TetrisPiece kickTestPiece = TetrisPiece(
-          type: testPiece.type,
-          position: [testPiece.position[0] + kick[0] + kick[1] * gridWidth],
-          rotationState: testPiece.rotationState,
-        );
+        TetrisPiece kickTestPiece = TetrisPiece.copyFrom(testPiece);
+        kickTestPiece.position[0] += kick[0];
+        kickTestPiece.position[1] += kick[1];
 
-        if (_isValidPosition(kickTestPiece, enforceBoundaries: true)) {
+        if (_isValidPosition(kickTestPiece)) {
+          // Apply successful kick
           currentPiece!.position[0] = kickTestPiece.position[0];
-          currentPiece!.rotate();
+          currentPiece!.position[1] = kickTestPiece.position[1];
+          currentPiece!.rotationState = kickTestPiece.rotationState;
           notifyListeners();
           return;
         }
@@ -195,79 +202,36 @@ class TetrisGame extends ChangeNotifier {
     }
   }
 
-  void hardDrop() {
-    if (currentPiece == null || !isPlaying) return;
+  // Enhanced collision detection without wrapping
+  bool _isValidPosition(TetrisPiece piece) {
+    List<List<int>> positions = piece.currentPositions;
 
-    int dropDistance = 0;
-    while (true) {
-      TetrisPiece testPiece = TetrisPiece(
-        type: currentPiece!.type,
-        position: [...currentPiece!.position],
-        rotationState: currentPiece!.rotationState,
-      );
-      testPiece.move(Direction.down);
+    for (var pos in positions) {
+      int row = pos[0];
+      int col = pos[1];
 
-      if (_isValidPosition(testPiece, enforceBoundaries: true)) {
-        currentPiece!.move(Direction.down);
-        dropDistance++;
-      } else {
-        break;
+      // Check boundaries - no wrapping allowed
+      if (col < 0 || col >= gridWidth || row >= gridHeight) {
+        return false;
       }
-    }
 
-    score += dropDistance * 2; // Bonus points for hard drop
-    _placePiece();
-  }
-
-  // CRITICAL FIX: Enhanced collision detection
-  bool _isValidPosition(TetrisPiece piece, {bool enforceBoundaries = false}) {
-    List<int> positions = piece.currentPositions;
-
-    for (int pos in positions) {
-      int row = pos ~/ gridWidth;
-      int col = pos % gridWidth;
-
-      // Allow spawning above grid (negative rows)
-      if (row < 0 && !enforceBoundaries) continue;
-
-      // Check boundaries
-      if (enforceBoundaries) {
-        if (col < 0 || col >= gridWidth || row >= gridHeight) return false;
-      } else {
-        if (row >= gridHeight || col < 0 || col >= gridWidth) return false;
-      }
+      // Allow spawning above visible grid
+      if (row < 0) continue;
 
       // Check collision with existing blocks
-      if (row >= 0 && row < gridHeight && grid[row][col] != null) return false;
+      if (grid[row][col] != null) return false;
     }
     return true;
   }
 
-  // CRITICAL FIX: Enhanced piece placement with proper collision
+  // Enhanced piece placement
   void _placePiece() {
     if (currentPiece == null) return;
 
-    // Ensure piece settles completely - check if ANY part can fall further
-    bool canFallFurther = true;
-    while (canFallFurther) {
-      TetrisPiece testPiece = TetrisPiece(
-        type: currentPiece!.type,
-        position: [...currentPiece!.position],
-        rotationState: currentPiece!.rotationState,
-      );
-      testPiece.move(Direction.down);
-
-      if (_isValidPosition(testPiece, enforceBoundaries: true)) {
-        currentPiece!.move(Direction.down);
-      } else {
-        canFallFurther = false;
-      }
-    }
-
     // Place the piece on the grid
-    for (int pos in currentPiece!.currentPositions) {
-      int row = pos ~/ gridWidth;
-      int col = pos % gridWidth;
+    for (var pos in currentPiece!.currentPositions) {
+      int row = pos[0];
+      int col = pos[1];
 
       if (row >= 0 && row < gridHeight && col >= 0 && col < gridWidth) {
         grid[row][col] = currentPiece!.type;
@@ -279,6 +243,7 @@ class TetrisGame extends ChangeNotifier {
     _updateGameSpeed();
   }
 
+  // ENHANCED: Clear lines with blast effect
   void _clearLines() {
     List<int> fullRows = [];
 
@@ -290,9 +255,14 @@ class TetrisGame extends ChangeNotifier {
 
     if (fullRows.isNotEmpty) {
       rowsToAnimate = [...fullRows];
+      _createBlastEffect(fullRows);
+      isBlasting = true;
       notifyListeners();
 
-      Timer(const Duration(milliseconds: 300), () {
+      // Start blast animation
+      _startBlastAnimation();
+
+      Timer(const Duration(milliseconds: 600), () {
         for (int row in fullRows.reversed) {
           grid.removeAt(row);
           grid.insert(0, List.generate(gridWidth, (j) => null));
@@ -303,9 +273,79 @@ class TetrisGame extends ChangeNotifier {
         totalLinesCleared += linesCount;
         _updateScore(linesCount);
         rowsToAnimate = [];
+        blastParticles = [];
+        isBlasting = false;
+        blastTimer?.cancel();
         notifyListeners();
       });
     }
+  }
+
+  // NEW: Create blast effect particles
+  void _createBlastEffect(List<int> fullRows) {
+    blastParticles.clear();
+    final random = Random();
+
+    for (int row in fullRows) {
+      for (int col = 0; col < gridWidth; col++) {
+        Color cellColor = _getTypeColor(grid[row][col]!);
+
+        // Create multiple particles per cell for more dramatic effect
+        for (int i = 0; i < 8; i++) {
+          blastParticles.add(
+            BlastParticle(
+              startRow: row.toDouble(),
+              startCol: col.toDouble(),
+              velocityX: (random.nextDouble() - 0.5) * 4,
+              velocityY: (random.nextDouble() - 0.5) * 4,
+              color: cellColor,
+              size: random.nextDouble() * 0.3 + 0.1,
+              life: 1.0,
+              decay: random.nextDouble() * 0.02 + 0.015,
+            ),
+          );
+        }
+
+        // Add some sparkle particles
+        for (int i = 0; i < 3; i++) {
+          blastParticles.add(
+            BlastParticle(
+              startRow: row.toDouble(),
+              startCol: col.toDouble(),
+              velocityX: (random.nextDouble() - 0.5) * 6,
+              velocityY: (random.nextDouble() - 0.5) * 6,
+              color: Colors.white,
+              size: random.nextDouble() * 0.2 + 0.05,
+              life: 1.0,
+              decay: random.nextDouble() * 0.03 + 0.02,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  // NEW: Animate blast particles
+  void _startBlastAnimation() {
+    blastTimer?.cancel();
+    blastTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+      if (!isPlaying && !isBlasting) {
+        timer.cancel();
+        return;
+      }
+
+      bool anyAlive = false;
+      for (var particle in blastParticles) {
+        particle.update();
+        if (particle.life > 0) anyAlive = true;
+      }
+
+      if (!anyAlive || blastParticles.isEmpty) {
+        timer.cancel();
+      }
+
+      notifyListeners();
+    });
   }
 
   void _updateScore(int linesCount) {
@@ -321,15 +361,15 @@ class TetrisGame extends ChangeNotifier {
         points = 500 * level;
         break;
       case 4:
-        points = 800 * level; // Tetris bonus!
+        points = 800 * level;
         break;
     }
     score += points;
 
-    // Real-time high score updates
+    // Real-time high score updates with immediate notification
     if (score > highScore) {
       _scoreBox.put('highscore', score);
-      notifyListeners(); // Trigger UI update immediately
+      notifyListeners();
     }
   }
 
@@ -346,46 +386,66 @@ class TetrisGame extends ChangeNotifier {
     isGameOver = true;
     isPlaying = false;
     gameTimer?.cancel();
+    blastTimer?.cancel();
 
-    // Save game session to history
     _saveGameSession();
     notifyListeners();
   }
 
-  // Game session tracking
+  // Enhanced game session tracking
   void _saveGameSession() {
     final session = GameSession(
       score: score,
       level: level,
       linesCleared: linesCleared,
       timestamp: DateTime.now(),
-      duration: DateTime.now().difference(
-        DateTime.now(),
-      ), // Calculate actual duration
+      duration: DateTime.now().difference(DateTime.now()),
     );
 
     gameHistory.insert(0, session);
-    if (gameHistory.length > 50) gameHistory.removeLast(); // Keep last 50 games
+    if (gameHistory.length > 100) gameHistory.removeLast();
 
     totalGamesPlayed++;
-    averageScore =
-        (averageScore * (totalGamesPlayed - 1) + score) / totalGamesPlayed;
+    totalLinesCleared += linesCleared;
+    averageScore = gameHistory.isEmpty
+        ? 0.0
+        : gameHistory.fold<double>(0, (sum, game) => sum + game.score) /
+              gameHistory.length;
 
-    // Persist to storage
+    // Persist to storage with real-time updates
     _statsBox.put('gameHistory', gameHistory.map((s) => s.toJson()).toList());
     _statsBox.put('totalGamesPlayed', totalGamesPlayed);
+    _statsBox.put('totalLinesCleared', totalLinesCleared);
     _statsBox.put('averageScore', averageScore);
   }
 
+  // Load stats on initialization
+  void loadStats() {
+    final historyData = _statsBox.get('gameHistory', defaultValue: <dynamic>[]);
+    gameHistory = (historyData as List)
+        .map((json) => GameSession.fromJson(Map<String, dynamic>.from(json)))
+        .toList();
+
+    totalGamesPlayed = _statsBox.get('totalGamesPlayed', defaultValue: 0);
+    totalLinesCleared = _statsBox.get('totalLinesCleared', defaultValue: 0);
+    averageScore = _statsBox.get('averageScore', defaultValue: 0.0);
+  }
+
   Color? getCellColor(int row, int col) {
+    // Show blast effect for clearing rows
+    if (rowsToAnimate.contains(row)) {
+      return Colors.white.withValues(alpha: 0.8);
+    }
+
     if (grid[row][col] != null) {
       return _getTypeColor(grid[row][col]!);
     }
 
     if (currentPiece != null) {
-      int cellIndex = row * gridWidth + col;
-      if (currentPiece!.currentPositions.contains(cellIndex)) {
-        return currentPiece!.color;
+      for (var pos in currentPiece!.currentPositions) {
+        if (pos[0] == row && pos[1] == col) {
+          return currentPiece!.color;
+        }
       }
     }
 
@@ -414,11 +474,59 @@ class TetrisGame extends ChangeNotifier {
   @override
   void dispose() {
     gameTimer?.cancel();
+    blastTimer?.cancel();
     super.dispose();
   }
 }
 
-// Game Session Data Model
+//Blast Particle class for explosion effects
+class BlastParticle {
+  double currentRow;
+  double currentCol;
+  final double startRow;
+  final double startCol;
+  double velocityX;
+  double velocityY;
+  final Color color;
+  final double size;
+  double life;
+  final double decay;
+
+  BlastParticle({
+    required this.startRow,
+    required this.startCol,
+    required this.velocityX,
+    required this.velocityY,
+    required this.color,
+    required this.size,
+    required this.life,
+    required this.decay,
+  }) : currentRow = startRow,
+       currentCol = startCol;
+
+  void update() {
+    if (life <= 0) return;
+
+    // Update position
+    currentRow += velocityY * 0.1;
+    currentCol += velocityX * 0.1;
+
+    // Apply gravity and drag
+    velocityY += 0.15; // gravity
+    velocityX *= 0.98; // air resistance
+    velocityY *= 0.98;
+
+    // Reduce life
+    life -= decay;
+    if (life < 0) life = 0;
+  }
+
+  Color get currentColor {
+    return color.withValues(alpha: life);
+  }
+}
+
+// Game Session Data Model - Enhanced
 class GameSession {
   final int score;
   final int level;

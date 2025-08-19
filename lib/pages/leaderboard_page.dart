@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:provider/provider.dart';
 import '../game/tetris_game.dart';
+import '../utils/screen_utils.dart';
 
 class LeaderboardPage extends StatefulWidget {
   const LeaderboardPage({super.key});
@@ -12,22 +13,17 @@ class LeaderboardPage extends StatefulWidget {
 class _LeaderboardPageState extends State<LeaderboardPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final Box _statsBox = Hive.box('gameStats');
-  List<GameSession> gameHistory = [];
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadGameHistory();
-  }
-
-  void _loadGameHistory() {
-    final historyData = _statsBox.get('gameHistory', defaultValue: <dynamic>[]);
-    gameHistory = (historyData as List)
-        .map((json) => GameSession.fromJson(Map<String, dynamic>.from(json)))
-        .toList();
-    setState(() {});
+    _tabController.addListener(() {
+      setState(() {
+        _selectedIndex = _tabController.index;
+      });
+    });
   }
 
   @override
@@ -51,7 +47,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
           child: Column(
             children: [
               _buildHeader(),
-              _buildTabBar(),
+              _buildGoldenTabBar(),
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
@@ -71,12 +67,16 @@ class _LeaderboardPageState extends State<LeaderboardPage>
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(ScreenUtils.wp(5)),
       child: Row(
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+            icon: Icon(
+              Icons.arrow_back,
+              color: Colors.white,
+              size: ScreenUtils.getScaledSize(28),
+            ),
             style: IconButton.styleFrom(
               backgroundColor: Colors.white.withValues(alpha: 0.1),
               shape: RoundedRectangleBorder(
@@ -84,101 +84,155 @@ class _LeaderboardPageState extends State<LeaderboardPage>
               ),
             ),
           ),
-          const SizedBox(width: 16),
-          const Text(
+          SizedBox(width: ScreenUtils.wp(4)),
+          Text(
             'LEADERBOARD',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 28,
+            style: ScreenUtils.getResponsiveTextStyle(
+              baseFontSize: 20,
               fontWeight: FontWeight.bold,
-              letterSpacing: 2,
-            ),
+              color: Colors.white,
+            ).copyWith(letterSpacing: 2),
           ),
           const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.yellow.withValues(alpha: 0.3),
-                  Colors.amber.withValues(alpha: 0.3),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.yellow, width: 1),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.emoji_events, color: Colors.yellow, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  '${gameHistory.length}',
-                  style: const TextStyle(
-                    color: Colors.yellow,
-                    fontWeight: FontWeight.bold,
-                  ),
+          Consumer<TetrisGame>(
+            builder: (context, game, child) {
+              return Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: ScreenUtils.wp(3),
+                  vertical: ScreenUtils.hp(0.8),
                 ),
-              ],
-            ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.yellow.withValues(alpha: 0.3),
+                      Colors.amber.withValues(alpha: 0.3),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.yellow, width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.emoji_events,
+                      color: Colors.yellow,
+                      size: ScreenUtils.getScaledSize(16),
+                    ),
+                    SizedBox(width: ScreenUtils.wp(1)),
+                    Text(
+                      '${game.gameHistory.length}',
+                      style: ScreenUtils.getResponsiveTextStyle(
+                        baseFontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.yellow,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildGoldenTabBar() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        color: Colors.white.withValues(alpha: 0.1),
+      margin: EdgeInsets.symmetric(horizontal: ScreenUtils.wp(5)),
+      child: Row(
+        children: [
+          _buildTabItem('HIGH SCORE', 0),
+          _buildTabItem('RECENT', 1),
+          _buildTabItem('STATISTICS', 2),
+        ],
       ),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          borderRadius: BorderRadius.circular(25),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+    );
+  }
+
+  Widget _buildTabItem(String title, int index) {
+    bool isSelected = _selectedIndex == index;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          _tabController.animateTo(index);
+        },
+        child: Container(
+          margin: EdgeInsets.symmetric(horizontal: ScreenUtils.wp(1)),
+          padding: EdgeInsets.symmetric(vertical: ScreenUtils.hp(1.5)),
+          decoration: BoxDecoration(
+            gradient: isSelected
+                ? const LinearGradient(
+                    colors: [Color(0xFFFFD700), Color(0xFFFFB347)],
+                  )
+                : LinearGradient(
+                    colors: [
+                      Colors.white.withValues(alpha: 0.1),
+                      Colors.white.withValues(alpha: 0.05),
+                    ],
+                  ),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: isSelected
+                  ? Colors.amber
+                  : Colors.white.withValues(alpha: 0.2),
+              width: 2,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.amber.withValues(alpha: 0.5),
+                      blurRadius: 15,
+                      offset: const Offset(0, 0),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Center(
+            child: Text(
+              title,
+              style: ScreenUtils.getResponsiveTextStyle(
+                baseFontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.black : Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white54,
-        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        tabs: const [
-          Tab(text: 'HIGH SCORES'),
-          Tab(text: 'RECENT'),
-          Tab(text: 'STATISTICS'),
-        ],
       ),
     );
   }
 
   Widget _buildHighScoresTab() {
-    final topScores = [...gameHistory]
-      ..sort((a, b) => b.score.compareTo(a.score))
-      ..take(10);
+    return Consumer<TetrisGame>(
+      builder: (context, game, child) {
+        final topScores = [...game.gameHistory]
+          ..sort((a, b) => b.score.compareTo(a.score))
+          ..take(10);
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: topScores.length + 1,
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return _buildCurrentHighScore();
-        }
+        return ListView.builder(
+          padding: ScreenUtils.getResponsivePadding(),
+          itemCount: topScores.length + 1,
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return _buildCurrentHighScore(game.highScore);
+            }
 
-        final session = topScores.elementAt(index - 1);
-        return _buildScoreCard(session, index);
+            final session = topScores.elementAt(index - 1);
+            return _buildScoreCard(session, index);
+          },
+        );
       },
     );
   }
 
-  Widget _buildCurrentHighScore() {
-    final highScore = Hive.box('highscore').get('highscore', defaultValue: 0);
-
+  Widget _buildCurrentHighScore(int highScore) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(24),
+      margin: EdgeInsets.only(bottom: ScreenUtils.hp(3)),
+      padding: EdgeInsets.all(ScreenUtils.wp(6)),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -200,24 +254,27 @@ class _LeaderboardPageState extends State<LeaderboardPage>
       ),
       child: Column(
         children: [
-          const Icon(Icons.emoji_events, color: Colors.yellow, size: 48),
-          const SizedBox(height: 12),
-          const Text(
-            'ALL-TIME HIGH SCORE',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1,
-            ),
+          Icon(
+            Icons.emoji_events,
+            color: Colors.yellow,
+            size: ScreenUtils.getScaledSize(48),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: ScreenUtils.hp(1.5)),
+          Text(
+            'ALL-TIME HIGH SCORE',
+            style: ScreenUtils.getResponsiveTextStyle(
+              baseFontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ).copyWith(letterSpacing: 1),
+          ),
+          SizedBox(height: ScreenUtils.hp(1)),
           Text(
             _formatNumber(highScore),
-            style: const TextStyle(
-              color: Colors.yellow,
-              fontSize: 36,
+            style: ScreenUtils.getResponsiveTextStyle(
+              baseFontSize: 36,
               fontWeight: FontWeight.bold,
+              color: Colors.yellow,
             ),
           ),
         ],
@@ -231,8 +288,8 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         : Colors.white54;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: ScreenUtils.hp(1.5)),
+      padding: EdgeInsets.all(ScreenUtils.wp(4)),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
@@ -241,8 +298,8 @@ class _LeaderboardPageState extends State<LeaderboardPage>
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: ScreenUtils.getScaledSize(40),
+            height: ScreenUtils.getScaledSize(40),
             decoration: BoxDecoration(
               color: rankColor.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
@@ -251,42 +308,56 @@ class _LeaderboardPageState extends State<LeaderboardPage>
             child: Center(
               child: Text(
                 '#$rank',
-                style: TextStyle(
-                  color: rankColor,
+                style: ScreenUtils.getResponsiveTextStyle(
+                  baseFontSize: 12,
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  color: rankColor,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: ScreenUtils.wp(4)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   _formatNumber(session.score),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
+                  style: ScreenUtils.getResponsiveTextStyle(
+                    baseFontSize: 20,
                     fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: ScreenUtils.hp(0.5)),
                 Row(
                   children: [
-                    Icon(Icons.timeline, color: Colors.cyan, size: 14),
-                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.timeline,
+                      color: Colors.cyan,
+                      size: ScreenUtils.getScaledSize(14),
+                    ),
+                    SizedBox(width: ScreenUtils.wp(1)),
                     Text(
                       'Level ${session.level}',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                      style: ScreenUtils.getResponsiveTextStyle(
+                        baseFontSize: 12,
+                        color: Colors.white70,
+                      ),
                     ),
-                    const SizedBox(width: 16),
-                    Icon(Icons.horizontal_rule, color: Colors.orange, size: 14),
-                    const SizedBox(width: 4),
+                    SizedBox(width: ScreenUtils.wp(4)),
+                    Icon(
+                      Icons.horizontal_rule,
+                      color: Colors.orange,
+                      size: ScreenUtils.getScaledSize(14),
+                    ),
+                    SizedBox(width: ScreenUtils.wp(1)),
                     Text(
                       '${session.linesCleared} lines',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                      style: ScreenUtils.getResponsiveTextStyle(
+                        baseFontSize: 12,
+                        color: Colors.white70,
+                      ),
                     ),
                   ],
                 ),
@@ -295,7 +366,10 @@ class _LeaderboardPageState extends State<LeaderboardPage>
           ),
           Text(
             _formatDate(session.timestamp),
-            style: TextStyle(color: Colors.white38, fontSize: 11),
+            style: ScreenUtils.getResponsiveTextStyle(
+              baseFontSize: 11,
+              color: Colors.white38,
+            ),
           ),
         ],
       ),
@@ -303,123 +377,155 @@ class _LeaderboardPageState extends State<LeaderboardPage>
   }
 
   Widget _buildRecentGamesTab() {
-    final recentGames = gameHistory.take(20).toList();
+    return Consumer<TetrisGame>(
+      builder: (context, game, child) {
+        final recentGames = game.gameHistory.take(20).toList();
 
-    if (recentGames.isEmpty) {
-      return _buildEmptyState(
-        'No games played yet',
-        'Start playing to see your game history!',
-      );
-    }
+        if (recentGames.isEmpty) {
+          return _buildEmptyState(
+            'No games played yet',
+            'Start playing to see your game history!',
+          );
+        }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: recentGames.length,
-      itemBuilder: (context, index) {
-        final session = recentGames[index];
-        return _buildRecentGameCard(session, index);
+        return ListView.builder(
+          padding: ScreenUtils.getResponsivePadding(),
+          itemCount: recentGames.length,
+          itemBuilder: (context, index) {
+            final session = recentGames[index];
+            return _buildRecentGameCard(
+              session,
+              index,
+              game.gameHistory.length,
+            );
+          },
+        );
       },
     );
   }
 
-  Widget _buildRecentGameCard(GameSession session, int index) {
+  Widget _buildRecentGameCard(GameSession session, int index, int totalGames) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: ScreenUtils.hp(1.5)),
+      padding: EdgeInsets.all(ScreenUtils.wp(4)),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
             Colors.white.withValues(alpha: 0.08),
-            Colors.white.withValues(alpha: 0.02),
+            Colors.white.withValues(alpha: 0.03),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Game #${gameHistory.length - index}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
+          // Game number badge
+          Container(
+            width: ScreenUtils.getScaledSize(50),
+            height: ScreenUtils.getScaledSize(50),
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                colors: [
+                  Colors.blue.withValues(alpha: 0.3),
+                  Colors.blue.withValues(alpha: 0.1),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue, width: 2),
+            ),
+            child: Center(
+              child: Text(
+                '${totalGames - index}',
+                style: ScreenUtils.getResponsiveTextStyle(
+                  baseFontSize: 14,
                   fontWeight: FontWeight.bold,
+                  color: Colors.blue,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _getScoreColor(session.score).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _formatNumber(session.score),
-                  style: TextStyle(
-                    color: _getScoreColor(session.score),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildStatChip(
-                Icons.trending_up,
-                'Level ${session.level}',
-                Colors.green,
-              ),
-              const SizedBox(width: 8),
-              _buildStatChip(
-                Icons.horizontal_rule,
-                '${session.linesCleared}',
-                Colors.orange,
-              ),
-              const SizedBox(width: 8),
-              _buildStatChip(
-                Icons.access_time,
-                _formatDuration(session.duration),
-                Colors.blue,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _formatDateTime(session.timestamp),
-            style: TextStyle(color: Colors.white38, fontSize: 12),
+          SizedBox(width: ScreenUtils.wp(4)),
+
+          // Game details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      _formatNumber(session.score),
+                      style: ScreenUtils.getResponsiveTextStyle(
+                        baseFontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      _formatRelativeTime(session.timestamp),
+                      style: ScreenUtils.getResponsiveTextStyle(
+                        baseFontSize: 10,
+                        color: Colors.white54,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: ScreenUtils.hp(0.8)),
+                Row(
+                  children: [
+                    _buildMiniStat(
+                      'LVL ${session.level}',
+                      Colors.green,
+                      Icons.trending_up,
+                    ),
+                    SizedBox(width: ScreenUtils.wp(3)),
+                    _buildMiniStat(
+                      '${session.linesCleared}L',
+                      Colors.orange,
+                      Icons.horizontal_rule,
+                    ),
+                    SizedBox(width: ScreenUtils.wp(3)),
+                    _buildMiniStat(
+                      _formatDuration(session.duration),
+                      Colors.purple,
+                      Icons.timer,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatChip(IconData icon, String text, Color color) {
+  Widget _buildMiniStat(String text, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: ScreenUtils.wp(2),
+        vertical: ScreenUtils.hp(0.3),
+      ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 12),
-          const SizedBox(width: 4),
+          Icon(icon, color: color, size: ScreenUtils.getScaledSize(12)),
+          SizedBox(width: ScreenUtils.wp(1)),
           Text(
             text,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
+            style: ScreenUtils.getResponsiveTextStyle(
+              baseFontSize: 10,
               fontWeight: FontWeight.bold,
+              color: color,
             ),
           ),
         ],
@@ -428,132 +534,24 @@ class _LeaderboardPageState extends State<LeaderboardPage>
   }
 
   Widget _buildStatsTab() {
-    final totalGames = _statsBox.get('totalGamesPlayed', defaultValue: 0);
-    final averageScore = _statsBox.get('averageScore', defaultValue: 0.0);
-    final highScore = Hive.box('highscore').get('highscore', defaultValue: 0);
+    return Consumer<TetrisGame>(
+      builder: (context, game, child) {
+        if (game.gameHistory.isEmpty) {
+          return _buildEmptyState(
+            'No statistics yet',
+            'Play some games to see your stats!',
+          );
+        }
 
-    final totalLines = gameHistory.fold<int>(
-      0,
-      (sum, game) => sum + game.linesCleared,
-    );
-    final averageLevel = gameHistory.isEmpty
-        ? 0.0
-        : gameHistory.fold<double>(0, (sum, game) => sum + game.level) /
-              gameHistory.length;
-    final bestLevel = gameHistory.isEmpty
-        ? 0
-        : gameHistory.map((g) => g.level).reduce((a, b) => a > b ? a : b);
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          _buildStatsGrid([
-            _StatCard(
-              'Total Games',
-              totalGames.toString(),
-              Icons.games,
-              Colors.blue,
-            ),
-            _StatCard(
-              'High Score',
-              _formatNumber(highScore),
-              Icons.emoji_events,
-              Colors.yellow,
-            ),
-            _StatCard(
-              'Average Score',
-              _formatNumber(averageScore.round()),
-              Icons.analytics,
-              Colors.green,
-            ),
-            _StatCard(
-              'Best Level',
-              bestLevel.toString(),
-              Icons.trending_up,
-              Colors.purple,
-            ),
-          ]),
-          const SizedBox(height: 20),
-          _buildStatsGrid([
-            _StatCard(
-              'Total Lines',
-              _formatNumber(totalLines),
-              Icons.horizontal_rule,
-              Colors.orange,
-            ),
-            _StatCard(
-              'Average Level',
-              averageLevel.toStringAsFixed(1),
-              Icons.timeline,
-              Colors.cyan,
-            ),
-            _StatCard(
-              'Games Today',
-              _getGamesToday().toString(),
-              Icons.today,
-              Colors.pink,
-            ),
-            _StatCard(
-              'Best Streak',
-              '0',
-              Icons.local_fire_department,
-              Colors.red,
-            ), // TODO: Implement streak tracking
-          ]),
-          const SizedBox(height: 30),
-          _buildAchievements(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsGrid(List<_StatCard> stats) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 1.2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: stats.length,
-      itemBuilder: (context, index) {
-        final stat = stats[index];
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                stat.color.withValues(alpha: 0.2),
-                stat.color.withValues(alpha: 0.05),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: stat.color.withValues(alpha: 0.3)),
-          ),
+        return SingleChildScrollView(
+          padding: ScreenUtils.getResponsivePadding(),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(stat.icon, color: stat.color, size: 32),
-              const SizedBox(height: 8),
-              Text(
-                stat.value,
-                style: TextStyle(
-                  color: stat.color,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                stat.label,
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-                textAlign: TextAlign.center,
-              ),
+              _buildStatsOverview(game),
+              SizedBox(height: ScreenUtils.hp(3)),
+              _buildDetailedStats(game),
+              SizedBox(height: ScreenUtils.hp(3)),
+              _buildAchievements(game),
             ],
           ),
         );
@@ -561,98 +559,334 @@ class _LeaderboardPageState extends State<LeaderboardPage>
     );
   }
 
-  Widget _buildAchievements() {
-    final achievements = _getAchievements();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'ACHIEVEMENTS',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1,
+  Widget _buildStatsOverview(TetrisGame game) {
+    return Container(
+      padding: EdgeInsets.all(ScreenUtils.wp(5)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.indigo.withValues(alpha: 0.3),
+            Colors.purple.withValues(alpha: 0.2),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.indigo, width: 2),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'GAME STATISTICS',
+            style: ScreenUtils.getResponsiveTextStyle(
+              baseFontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ).copyWith(letterSpacing: 2),
           ),
-        ),
-        const SizedBox(height: 16),
-        ...achievements.map(
-          (achievement) => _buildAchievementCard(achievement),
-        ),
-      ],
+          SizedBox(height: ScreenUtils.hp(3)),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatTile(
+                  'GAMES PLAYED',
+                  game.totalGamesPlayed.toString(),
+                  Colors.cyan,
+                  Icons.sports_esports,
+                ),
+              ),
+              SizedBox(width: ScreenUtils.wp(3)),
+              Expanded(
+                child: _buildStatTile(
+                  'TOTAL LINES',
+                  game.totalLinesCleared.toString(),
+                  Colors.orange,
+                  Icons.horizontal_rule,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: ScreenUtils.hp(2)),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatTile(
+                  'AVG SCORE',
+                  _formatNumber(game.averageScore.round()),
+                  Colors.green,
+                  Icons.trending_up,
+                ),
+              ),
+              SizedBox(width: ScreenUtils.wp(3)),
+              Expanded(
+                child: _buildStatTile(
+                  'BEST LEVEL',
+                  _getBestLevel(game).toString(),
+                  Colors.purple,
+                  Icons.star,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildAchievementCard(_Achievement achievement) {
+  Widget _buildStatTile(
+    String label,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(ScreenUtils.wp(4)),
       decoration: BoxDecoration(
-        color: achievement.unlocked
-            ? achievement.color.withValues(alpha: 0.1)
-            : Colors.white.withValues(alpha: 0.02),
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: ScreenUtils.getScaledSize(24)),
+          SizedBox(height: ScreenUtils.hp(1)),
+          Text(
+            value,
+            style: ScreenUtils.getResponsiveTextStyle(
+              baseFontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          SizedBox(height: ScreenUtils.hp(0.5)),
+          Text(
+            label,
+            style: ScreenUtils.getResponsiveTextStyle(
+              baseFontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Colors.white70,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailedStats(TetrisGame game) {
+    final totalScore = game.gameHistory.fold<int>(
+      0,
+      (sum, session) => sum + session.score,
+    );
+    final totalTime = game.gameHistory.fold<Duration>(
+      Duration.zero,
+      (sum, session) => sum + session.duration,
+    );
+    final averageLevel = game.gameHistory.isEmpty
+        ? 0.0
+        : game.gameHistory.fold<double>(
+                0,
+                (sum, session) => sum + session.level,
+              ) /
+              game.gameHistory.length;
+
+    return Container(
+      padding: EdgeInsets.all(ScreenUtils.wp(5)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.teal.withValues(alpha: 0.3),
+            Colors.blue.withValues(alpha: 0.2),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.teal, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'DETAILED ANALYTICS',
+            style: ScreenUtils.getResponsiveTextStyle(
+              baseFontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ).copyWith(letterSpacing: 1),
+          ),
+          SizedBox(height: ScreenUtils.hp(2)),
+          _buildDetailRow(
+            'Total Score',
+            _formatNumber(totalScore),
+            Colors.cyan,
+          ),
+          _buildDetailRow(
+            'Total Playtime',
+            _formatLongDuration(totalTime),
+            Colors.green,
+          ),
+          _buildDetailRow(
+            'Average Level',
+            averageLevel.toStringAsFixed(1),
+            Colors.orange,
+          ),
+          _buildDetailRow(
+            'Lines per Game',
+            _getLinesPerGame(game),
+            Colors.purple,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, Color color) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: ScreenUtils.hp(0.8)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: ScreenUtils.getResponsiveTextStyle(
+              baseFontSize: 14,
+              color: Colors.white70,
+            ),
+          ),
+          Text(
+            value,
+            style: ScreenUtils.getResponsiveTextStyle(
+              baseFontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAchievements(TetrisGame game) {
+    List<Achievement> achievements = _calculateAchievements(game);
+
+    return Container(
+      padding: EdgeInsets.all(ScreenUtils.wp(5)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.amber.withValues(alpha: 0.3),
+            Colors.orange.withValues(alpha: 0.2),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.amber, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.emoji_events,
+                color: Colors.amber,
+                size: ScreenUtils.getScaledSize(24),
+              ),
+              SizedBox(width: ScreenUtils.wp(2)),
+              Text(
+                'ACHIEVEMENTS',
+                style: ScreenUtils.getResponsiveTextStyle(
+                  baseFontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ).copyWith(letterSpacing: 1),
+              ),
+            ],
+          ),
+          SizedBox(height: ScreenUtils.hp(2)),
+          ...achievements.map(
+            (achievement) => _buildAchievementTile(achievement),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAchievementTile(Achievement achievement) {
+    return Container(
+      margin: EdgeInsets.only(bottom: ScreenUtils.hp(1)),
+      padding: EdgeInsets.all(ScreenUtils.wp(3)),
+      decoration: BoxDecoration(
+        color: achievement.isUnlocked
+            ? Colors.amber.withValues(alpha: 0.2)
+            : Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: achievement.unlocked
-              ? achievement.color.withValues(alpha: 0.5)
-              : Colors.white.withValues(alpha: 0.1),
+          color: achievement.isUnlocked
+              ? Colors.amber.withValues(alpha: 0.7)
+              : Colors.white.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            padding: EdgeInsets.all(ScreenUtils.wp(2)),
             decoration: BoxDecoration(
-              color: achievement.unlocked
-                  ? achievement.color.withValues(alpha: 0.2)
-                  : Colors.grey.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: achievement.isUnlocked
+                  ? Colors.amber.withValues(alpha: 0.3)
+                  : Colors.grey.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               achievement.icon,
-              color: achievement.unlocked ? achievement.color : Colors.grey,
-              size: 24,
+              color: achievement.isUnlocked ? Colors.amber : Colors.grey,
+              size: ScreenUtils.getScaledSize(20),
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: ScreenUtils.wp(3)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   achievement.title,
-                  style: TextStyle(
-                    color: achievement.unlocked ? Colors.white : Colors.grey,
-                    fontSize: 16,
+                  style: ScreenUtils.getResponsiveTextStyle(
+                    baseFontSize: 14,
                     fontWeight: FontWeight.bold,
+                    color: achievement.isUnlocked
+                        ? Colors.amber
+                        : Colors.white70,
                   ),
                 ),
-                const SizedBox(height: 4),
                 Text(
                   achievement.description,
-                  style: TextStyle(
-                    color: achievement.unlocked ? Colors.white70 : Colors.grey,
-                    fontSize: 12,
+                  style: ScreenUtils.getResponsiveTextStyle(
+                    baseFontSize: 12,
+                    color: Colors.white60,
                   ),
                 ),
               ],
             ),
           ),
-          if (achievement.unlocked)
+          if (achievement.isUnlocked)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: achievement.color.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
+              padding: EdgeInsets.symmetric(
+                horizontal: ScreenUtils.wp(2),
+                vertical: ScreenUtils.hp(0.3),
               ),
-              child: const Text(
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber),
+              ),
+              child: Text(
                 'UNLOCKED',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
+                style: ScreenUtils.getResponsiveTextStyle(
+                  baseFontSize: 8,
                   fontWeight: FontWeight.bold,
+                  color: Colors.amber,
                 ),
               ),
             ),
@@ -666,21 +900,53 @@ class _LeaderboardPageState extends State<LeaderboardPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inbox, color: Colors.white38, size: 64),
-          const SizedBox(height: 16),
+          Icon(
+            Icons.videogame_asset_off,
+            color: Colors.white.withValues(alpha: 0.3),
+            size: ScreenUtils.getScaledSize(64),
+          ),
+          SizedBox(height: ScreenUtils.hp(2)),
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 18,
+            style: ScreenUtils.getResponsiveTextStyle(
+              baseFontSize: 20,
               fontWeight: FontWeight.bold,
+              color: Colors.white54,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: ScreenUtils.hp(1)),
           Text(
             subtitle,
-            style: const TextStyle(color: Colors.white38, fontSize: 14),
+            style: ScreenUtils.getResponsiveTextStyle(
+              baseFontSize: 14,
+              color: Colors.white38,
+            ),
             textAlign: TextAlign.center,
+          ),
+          SizedBox(height: ScreenUtils.hp(4)),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pushReplacementNamed(context, '/game');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.cyan.withValues(alpha: 0.2),
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(
+                horizontal: ScreenUtils.wp(8),
+                vertical: ScreenUtils.hp(1.5),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.cyan, width: 2),
+              ),
+            ),
+            child: Text(
+              'START PLAYING',
+              style: ScreenUtils.getResponsiveTextStyle(
+                baseFontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -701,124 +967,132 @@ class _LeaderboardPageState extends State<LeaderboardPage>
     final now = DateTime.now();
     final difference = now.difference(date);
 
-    if (difference.inDays == 0) {
-      return 'Today';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
     } else {
-      return '${date.day}/${date.month}/${date.year}';
+      return 'Just now';
     }
   }
 
-  String _formatDateTime(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  String _formatRelativeTime(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inDays > 7) {
+      return '${timestamp.day}/${timestamp.month}';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+    if (minutes > 0) {
+      return '${minutes}m${seconds}s';
+    } else {
+      return '${seconds}s';
+    }
   }
 
-  Color _getScoreColor(int score) {
-    if (score >= 50000) return Colors.purple;
-    if (score >= 25000) return Colors.red;
-    if (score >= 10000) return Colors.orange;
-    if (score >= 5000) return Colors.yellow;
-    if (score >= 1000) return Colors.green;
-    return Colors.blue;
+  String _formatLongDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+
+    if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    } else {
+      return '${minutes}m';
+    }
   }
 
-  int _getGamesToday() {
-    final today = DateTime.now();
-    return gameHistory.where((game) {
-      return game.timestamp.year == today.year &&
-          game.timestamp.month == today.month &&
-          game.timestamp.day == today.day;
-    }).length;
+  String _getLinesPerGame(TetrisGame game) {
+    if (game.gameHistory.isEmpty) return '0.0';
+    final average = game.totalLinesCleared / game.gameHistory.length;
+    return average.toStringAsFixed(1);
   }
 
-  List<_Achievement> _getAchievements() {
-    final highScore = Hive.box('highscore').get('highscore', defaultValue: 0);
-    final totalGames = gameHistory.length;
-    final totalLines = gameHistory.fold<int>(
-      0,
-      (sum, game) => sum + game.linesCleared,
-    );
-    final bestLevel = gameHistory.isEmpty
-        ? 0
-        : gameHistory.map((g) => g.level).reduce((a, b) => a > b ? a : b);
+  int _getBestLevel(TetrisGame game) {
+    if (game.gameHistory.isEmpty) return 0;
+    return game.gameHistory
+        .map((session) => session.level)
+        .reduce((a, b) => a > b ? a : b);
+  }
 
+  List<Achievement> _calculateAchievements(TetrisGame game) {
     return [
-      _Achievement(
-        'First Steps',
-        'Play your first game',
-        Icons.play_arrow,
-        Colors.green,
-        totalGames >= 1,
+      Achievement(
+        title: 'First Steps',
+        description: 'Play your first game',
+        icon: Icons.play_arrow,
+        isUnlocked: game.gameHistory.isNotEmpty,
       ),
-      _Achievement(
-        'Line Clearer',
-        'Clear 100 lines total',
-        Icons.horizontal_rule,
-        Colors.blue,
-        totalLines >= 100,
+      Achievement(
+        title: 'Score Hunter',
+        description: 'Reach 10,000 points',
+        icon: Icons.turn_sharp_right_rounded,
+        isUnlocked: game.highScore >= 10000,
       ),
-      _Achievement(
-        'High Scorer',
-        'Reach 10,000 points',
-        Icons.star,
-        Colors.yellow,
-        highScore >= 10000,
+      Achievement(
+        title: 'Line Clearer',
+        description: 'Clear 100 total lines',
+        icon: Icons.horizontal_rule,
+        isUnlocked: game.totalLinesCleared >= 100,
       ),
-      _Achievement(
-        'Level Master',
-        'Reach level 10',
-        Icons.trending_up,
-        Colors.purple,
-        bestLevel >= 10,
+      Achievement(
+        title: 'Speed Demon',
+        description: 'Reach level 10',
+        icon: Icons.speed,
+        isUnlocked: _getBestLevel(game) >= 10,
       ),
-      _Achievement(
-        'Dedication',
-        'Play 50 games',
-        Icons.favorite,
-        Colors.red,
-        totalGames >= 50,
+      Achievement(
+        title: 'Tetris Master',
+        description: 'Score 50,000 points',
+        icon: Icons.emoji_events,
+        isUnlocked: game.highScore >= 50000,
       ),
-      _Achievement(
-        'Line Master',
-        'Clear 1000 lines total',
-        Icons.whatshot,
-        Colors.orange,
-        totalLines >= 1000,
+      Achievement(
+        title: 'Persistent Player',
+        description: 'Play 50 games',
+        icon: Icons.refresh,
+        isUnlocked: game.totalGamesPlayed >= 50,
+      ),
+      Achievement(
+        title: 'Line Destroyer',
+        description: 'Clear 1000 total lines',
+        icon: Icons.whatshot,
+        isUnlocked: game.totalLinesCleared >= 1000,
+      ),
+      Achievement(
+        title: 'The Legend',
+        description: 'Score 100,000 points',
+        icon: Icons.star,
+        isUnlocked: game.highScore >= 100000,
       ),
     ];
   }
 }
 
-class _StatCard {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  _StatCard(this.label, this.value, this.icon, this.color);
-}
-
-class _Achievement {
+class Achievement {
   final String title;
   final String description;
   final IconData icon;
-  final Color color;
-  final bool unlocked;
+  final bool isUnlocked;
 
-  _Achievement(
-    this.title,
-    this.description,
-    this.icon,
-    this.color,
-    this.unlocked,
-  );
+  Achievement({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.isUnlocked,
+  });
 }

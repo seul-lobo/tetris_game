@@ -7,7 +7,7 @@ enum Direction { left, right, down }
 
 class TetrisPiece {
   TetrominoType type;
-  List<int> position;
+  List<int> position; // [row, col] of the anchor point
   int rotationState;
 
   TetrisPiece({
@@ -16,56 +16,206 @@ class TetrisPiece {
     this.rotationState = 0,
   });
 
-  //More precise tetromino definitions with better balance
-  Map<TetrominoType, List<List<int>>> get tetrominos => {
+  // Copy constructor to avoid reference issues
+  TetrisPiece.copyFrom(TetrisPiece other)
+    : type = other.type,
+      position = [...other.position],
+      rotationState = other.rotationState;
+
+  // FIXED: Proper tetromino definitions with relative positions
+  Map<TetrominoType, List<List<List<int>>>> get tetrominos => {
     TetrominoType.L: [
-      [-26, -16, -6, -5], // 0°
-      [-25, -15, -14, -13], // 90°
-      [-15, -5, 5, 6], // 180°
-      [-5, -4, -3, 5], // 270°
+      [
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [1, 1],
+      ], // 0°
+      [
+        [0, -1],
+        [0, 0],
+        [0, 1],
+        [1, -1],
+      ], // 90°
+      [
+        [-1, -1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+      ], // 180°
+      [
+        [-1, 1],
+        [0, -1],
+        [0, 0],
+        [0, 1],
+      ], // 270°
     ],
     TetrominoType.J: [
-      [-25, -15, -5, -6], // 0°
-      [-26, -16, -15, -14], // 90°
-      [-16, -6, 4, 5], // 180°
-      [-6, -5, -4, -14], // 270°
+      [
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [1, -1],
+      ], // 0°
+      [
+        [-1, -1],
+        [0, -1],
+        [0, 0],
+        [0, 1],
+      ], // 90°
+      [
+        [-1, 1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+      ], // 180°
+      [
+        [0, -1],
+        [0, 0],
+        [0, 1],
+        [1, 1],
+      ], // 270°
     ],
     TetrominoType.I: [
-      [-36, -26, -16, -6], // 0° - Vertical
-      [-7, -6, -5, -4], // 90° - Horizontal
-      [-36, -26, -16, -6], // 180° - Vertical
-      [-7, -6, -5, -4], // 270° - Horizontal
+      [
+        [-2, 0],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+      ], // 0° - Vertical
+      [
+        [0, -1],
+        [0, 0],
+        [0, 1],
+        [0, 2],
+      ], // 90° - Horizontal
+      [
+        [-2, 0],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+      ], // 180° - Vertical
+      [
+        [0, -1],
+        [0, 0],
+        [0, 1],
+        [0, 2],
+      ], // 270° - Horizontal
     ],
     TetrominoType.O: [
-      [-16, -15, -6, -5], // All rotations the same
-      [-16, -15, -6, -5],
-      [-16, -15, -6, -5],
-      [-16, -15, -6, -5],
+      [
+        [0, 0],
+        [0, 1],
+        [1, 0],
+        [1, 1],
+      ], // All rotations the same
+      [
+        [0, 0],
+        [0, 1],
+        [1, 0],
+        [1, 1],
+      ],
+      [
+        [0, 0],
+        [0, 1],
+        [1, 0],
+        [1, 1],
+      ],
+      [
+        [0, 0],
+        [0, 1],
+        [1, 0],
+        [1, 1],
+      ],
     ],
     TetrominoType.S: [
-      [-15, -14, -6, -5], // 0°
-      [-26, -16, -15, -5], // 90°
-      [-15, -14, -6, -5], // 180°
-      [-26, -16, -15, -5], // 270°
+      [
+        [0, -1],
+        [0, 0],
+        [1, 0],
+        [1, 1],
+      ], // 0°
+      [
+        [-1, 0],
+        [0, -1],
+        [0, 0],
+        [1, -1],
+      ], // 90°
+      [
+        [0, -1],
+        [0, 0],
+        [1, 0],
+        [1, 1],
+      ], // 180°
+      [
+        [-1, 0],
+        [0, -1],
+        [0, 0],
+        [1, -1],
+      ], // 270°
     ],
     TetrominoType.Z: [
-      [-17, -16, -6, -5], // 0°
-      [-25, -15, -16, -6], // 90°
-      [-17, -16, -6, -5], // 180°
-      [-25, -15, -16, -6], // 270°
+      [
+        [0, 0],
+        [0, 1],
+        [1, -1],
+        [1, 0],
+      ], // 0°
+      [
+        [-1, -1],
+        [0, -1],
+        [0, 0],
+        [1, 0],
+      ], // 90°
+      [
+        [0, 0],
+        [0, 1],
+        [1, -1],
+        [1, 0],
+      ], // 180°
+      [
+        [-1, -1],
+        [0, -1],
+        [0, 0],
+        [1, 0],
+      ], // 270°
     ],
     TetrominoType.T: [
-      [-16, -15, -14, -5], // 0°
-      [-26, -16, -15, -6], // 90°
-      [-15, -5, -4, -3], // 180°
-      [-25, -16, -15, -5], // 270°
+      [
+        [0, -1],
+        [0, 0],
+        [0, 1],
+        [1, 0],
+      ], // 0°
+      [
+        [-1, 0],
+        [0, -1],
+        [0, 0],
+        [1, 0],
+      ], // 90°
+      [
+        [-1, 0],
+        [0, -1],
+        [0, 0],
+        [0, 1],
+      ], // 180°
+      [
+        [-1, 0],
+        [0, 0],
+        [0, 1],
+        [1, 0],
+      ], // 270°
     ],
   };
 
-  List<int> get currentPositions {
-    List<int> positions = [];
-    for (int pos in tetrominos[type]![rotationState]) {
-      positions.add(pos + position[0]);
+  // FIXED: Returns absolute positions as [row, col] pairs
+  List<List<int>> get currentPositions {
+    List<List<int>> positions = [];
+    for (var relPos in tetrominos[type]![rotationState]) {
+      positions.add([
+        position[0] + relPos[0], // row
+        position[1] + relPos[1], // col
+      ]);
     }
     return positions;
   }
@@ -73,13 +223,13 @@ class TetrisPiece {
   void move(Direction direction) {
     switch (direction) {
       case Direction.down:
-        position[0] += 10;
+        position[0] += 1; // Move down one row
         break;
       case Direction.left:
-        position[0] -= 1;
+        position[1] -= 1; // Move left one column
         break;
       case Direction.right:
-        position[0] += 1;
+        position[1] += 1; // Move right one column
         break;
     }
   }
@@ -88,7 +238,7 @@ class TetrisPiece {
     rotationState = (rotationState + 1) % 4;
   }
 
-  //Enhanced color system with better contrast
+  // Enhanced color system with better contrast
   Color get color {
     switch (type) {
       case TetrominoType.L:
@@ -108,11 +258,11 @@ class TetrisPiece {
     }
   }
 
-  //Generate specific piece type (for 7-bag system)
+  // Generate specific piece type (for 7-bag system)
   static TetrisPiece generateSpecificPiece(TetrominoType type) {
     return TetrisPiece(
       type: type,
-      position: [4], // Start at top center
+      position: [0, 4], // Start at row 0 (top of 10x10 grid), center column
     );
   }
 
@@ -123,26 +273,22 @@ class TetrisPiece {
         TetrominoType.values[random.nextInt(TetrominoType.values.length)];
     return TetrisPiece(
       type: randomType,
-      position: [4], // Start at top center
+      position: [-2, 4], // Start above visible grid, center column
     );
   }
 
-  //Get piece preview for next piece display
+  // Get piece preview for next piece display
   List<List<bool>> get previewGrid {
     List<List<bool>> preview = List.generate(4, (_) => List.filled(4, false));
-    List<int> positions =
-        tetrominos[type]![0]; // Always use first rotation for preview
+    List<List<int>> positions =
+        tetrominos[type]![0]; // Always use first rotation
 
-    int minRow = positions
-        .map((pos) => pos ~/ 10)
-        .reduce((a, b) => a < b ? a : b);
-    int minCol = positions
-        .map((pos) => pos % 10)
-        .reduce((a, b) => a < b ? a : b);
+    int minRow = positions.map((pos) => pos[0]).reduce((a, b) => a < b ? a : b);
+    int minCol = positions.map((pos) => pos[1]).reduce((a, b) => a < b ? a : b);
 
-    for (int pos in positions) {
-      int row = (pos ~/ 10) - minRow;
-      int col = (pos % 10) - minCol;
+    for (var pos in positions) {
+      int row = pos[0] - minRow;
+      int col = pos[1] - minCol;
       if (row >= 0 && row < 4 && col >= 0 && col < 4) {
         preview[row][col] = true;
       }
